@@ -22,14 +22,20 @@
 #include "nvs_flash.h"
 #include "esp_bt.h"
 
+// user generated
 #include "ws2812_control.h"
 #include "motor.h"
 #include "gpio_interrupt.h"
+#include "display_helpers.h"
+#include "game.h"
 
+// random
+#include "esp_random.h"
+
+// usb drivers
 #include "driver/usb_serial_jtag.h"
 #include "esp_vfs_dev.h"
-
-
+#include "driver/usb_serial_jtag_vfs.h"
 
 static const char *TAG = "main";
 
@@ -93,6 +99,7 @@ void gpio_interrupt_task(void *pvParameters)
     }
 }
 
+
 // this is the main logic loop
 void game_logic_loop(void *pvParameters){
 
@@ -102,32 +109,15 @@ void game_logic_loop(void *pvParameters){
 
 }
 
-
-uint32_t splash_screen[8][15] = {
-        {0x200000, 0x200000, 0x200000, 0x200000, 0x200000, 0x200000, 0x200000, 0x200000, 0x200000, 0x200000, 0x200000, 0x0CFF00, 0x0CFF00, 0x200000, 0x200000},
-        {0x200000, 0x200000, 0x200000, 0x200000, 0x200000, 0x200000, 0x200000, 0x200000, 0x200000, 0x200000, 0x200000, 0x0CFF00, 0x0CFF00, 0x200000, 0x200000},
-        {0x200000, 0x200000, 0x200000, 0x200000, 0x200000, 0x200000, 0x200000, 0x200000, 0x200000, 0x200000, 0x200000, 0x200000, 0x200000, 0x200000, 0x200000},
-        {0x200000, 0xE5FF00, 0xFFFFFF, 0x200000, 0x200000, 0x200000, 0x0CFF00, 0x0CFF00, 0x200000, 0x200000, 0x200000, 0x200000, 0x200000, 0x200000, 0x200000},
-        {0x200000, 0xE5FF00, 0xFFF000, 0x200000, 0x200000, 0x200000, 0x0CFF00, 0x0CFF00, 0x200000, 0x200000, 0x200000, 0x200000, 0x200000, 0x200000, 0x200000},
-        {0x200000, 0x200000, 0x200000, 0x200000, 0x200000, 0x200000, 0x0CFF00, 0x0CFF00, 0x200000, 0x200000, 0x200000, 0x200000, 0x200000, 0x200000, 0x200000},
-        {0x200000, 0x200000, 0x200000, 0x200000, 0x200000, 0x200000, 0x0CFF00, 0x0CFF00, 0x200000, 0x200000, 0x200000, 0x200000, 0x200000, 0x200000, 0x0CFF00},
-        {0x200000, 0x200000, 0x200000, 0x200000, 0x200000, 0x200000, 0x0CFF00, 0x0CFF00, 0x200000, 0x200000, 0x200000, 0x200000, 0x200000, 0x200000, 0x0CFF00}
-};
-
-// Function to limit a color component
-uint8_t limit_brightness(uint8_t color, uint8_t max_brightness) {
-    return (color * max_brightness) / 255;
-}
-
 void app_main(void)
 {
-
     usb_serial_jtag_driver_config_t usb_serial_jtag_config = USB_SERIAL_JTAG_DRIVER_CONFIG_DEFAULT();
     usb_serial_jtag_driver_install(&usb_serial_jtag_config);
 
-    esp_vfs_usb_serial_jtag_use_driver();
+    usb_serial_jtag_vfs_use_driver();
 
-    vTaskDelay(1000 / portTICK_PERIOD_MS);  // Delay
+    // wait a little bit for the drivers to kick in
+    vTaskDelay(1000 / portTICK_PERIOD_MS);
 
 
     ESP_LOGI(TAG, "starting up");
@@ -170,47 +160,33 @@ void app_main(void)
                 NULL, 5, NULL);
 
 
-    int led_num = 0;
-    // conver the buffer to our screen xy
-    for(int i = 0; i < 8; i++){
-        for (int j = 0; j < 15; j++){
-
-            // break out the r g b
-            uint8_t r = splash_screen[i][j] >> 16;
-            uint8_t g = splash_screen[i][j] >> 8;
-            uint8_t b = splash_screen[i][j] >> 0;
-
-            if(i % 2 != 0){
-                // odd, have to reverse it
-                r = splash_screen[i][14 - j] >> 16;
-                g = splash_screen[i][14 - j] >> 8;
-                b = splash_screen[i][14 - j] >> 0;
-            }
-
-
-            // Apply brightness limit
-            r = limit_brightness(r, 30);
-            g = limit_brightness(g, 30);
-            b = limit_brightness(b, 30);
-
-            // re-arrange rgb to grb and write it to the array
-            new_state.leds[led_num] = (((uint32_t)g) << 16) | (((uint32_t)r) << 8) | (((uint32_t)b) << 0);
-            led_num++;
-        }
-    }
-
-
+    // write the display buffer to the new state buffer
+    display_write_buffer(&new_state);
     ws2812_write_leds(new_state);
+
+    vTaskDelay(1000 / portTICK_PERIOD_MS);  // Delay
 
 
     while (1) {
 
-        for(int i = 0; i < 120; i++)
-            new_state.leds[i] = get_next_color_full_spectrum();
+//        for(int i = 0; i < 120; i++)
+//            new_state.leds[i] = get_next_color_full_spectrum();
 
+        // run the game logic
+        game_run();
+
+        // write the display buffer
+        game_compile_buffer(display_buffer);
+
+        // write the display buffer to the new state
+        display_write_buffer(&new_state);
+
+        // display on the screen
         ws2812_write_leds(new_state);
 
-        vTaskDelay(10 / portTICK_PERIOD_MS);  // Delay
+        vTaskDelay(100 / portTICK_PERIOD_MS);  // Delay
+
+
 
     }
 }

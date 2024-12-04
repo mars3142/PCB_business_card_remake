@@ -1,5 +1,5 @@
 #include "controller.h"
-#include "motor.h"
+#include "../motor.h"
 #include <stdio.h>
 #include "esp_log.h"
 

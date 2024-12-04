@@ -1,7 +1,7 @@
 #include "gatt_svr.h"
 #include "mbedtls/aes.h"
 #include <string.h>
-#include "controller.h"
+#include "old/controller.h"
 
 
 uint8_t gatt_svr_chr_ota_control_val;
