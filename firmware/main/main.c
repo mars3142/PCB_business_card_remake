@@ -48,6 +48,8 @@ static const char *TAG = "main";
 
 #define MAX_BRIGHTNESS 0.1f // 20% brightness
 
+struct led_state new_state;
+
 uint32_t get_next_color_full_spectrum(void) {
     static uint32_t hue = 0;
     float r, g, b;
@@ -103,8 +105,26 @@ void gpio_interrupt_task(void *pvParameters)
 // this is the main logic loop
 void game_logic_loop(void *pvParameters){
 
+    TickType_t xLastWakeTime = xTaskGetTickCount();
+    const TickType_t xFrequency = pdMS_TO_TICKS(20); // For 50 Hz (1000 ms / 50 = 20 ms)
+
     while(1){
-        vTaskDelay(1000 / portTICK_PERIOD_MS);  // Delay
+
+        vTaskDelayUntil(&xLastWakeTime, xFrequency);
+//        ESP_LOGI(TAG, "game tick!");
+
+        // run the game logic
+        game_run();
+
+        // write the display buffer
+        game_compile_buffer(display_buffer);
+
+        // write the display buffer to the new state
+        display_write_buffer(&new_state);
+
+        // display on the screen
+        ws2812_write_leds(new_state);
+
     }
 
 }
@@ -124,7 +144,7 @@ void app_main(void)
 
     // init led driver
     ws2812_control_init();
-    struct led_state new_state;
+
     ESP_LOGI(TAG, "ws driver initialized");
 
     // BLE Setup -------------------
@@ -156,15 +176,15 @@ void app_main(void)
 
 
     // initialize the task for game logic loop
-    xTaskCreate(game_logic_loop, "game_logic_loop", 2048,
-                NULL, 5, NULL);
+    xTaskCreate(game_logic_loop, "game_logic_loop", 4096,
+                NULL, 0, NULL);
 
 
-    // write the display buffer to the new state buffer
-    display_write_buffer(&new_state);
-    ws2812_write_leds(new_state);
-
-    vTaskDelay(1000 / portTICK_PERIOD_MS);  // Delay
+//    // write the display buffer to the new state buffer
+//    display_write_buffer(&new_state);
+//    ws2812_write_leds(new_state);
+//
+//    vTaskDelay(1000 / portTICK_PERIOD_MS);  // Delay
 
 
     while (1) {
@@ -172,19 +192,9 @@ void app_main(void)
 //        for(int i = 0; i < 120; i++)
 //            new_state.leds[i] = get_next_color_full_spectrum();
 
-        // run the game logic
-        game_run();
 
-        // write the display buffer
-        game_compile_buffer(display_buffer);
 
-        // write the display buffer to the new state
-        display_write_buffer(&new_state);
-
-        // display on the screen
-        ws2812_write_leds(new_state);
-
-        vTaskDelay(100 / portTICK_PERIOD_MS);  // Delay
+        vTaskDelay(1000 / portTICK_PERIOD_MS);  // Delay
 
 
 
