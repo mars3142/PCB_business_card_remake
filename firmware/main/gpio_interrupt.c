@@ -5,7 +5,7 @@
 
 #define GPIO_QUEUE_LENGTH 10
 #define GPIO_QUEUE_ITEM_SIZE sizeof(uint32_t)
-#define DEBOUNCE_TIME_MS 200
+#define DEBOUNCE_TIME_MS 30
 
 QueueHandle_t gpio_evt_queue = NULL;
 
@@ -19,8 +19,8 @@ static void IRAM_ATTR gpio_isr_handler(void* arg)
     uint32_t interrupt_time = xTaskGetTickCountFromISR();
     uint32_t gpio_num = (uint32_t) arg;
 
-    // Check if it's a falling edge
-    if (gpio_get_level(gpio_num) == 0) {
+    // Check if it's a rising edge
+    if (gpio_get_level(gpio_num) == 1) {
         // Debounce mechanism
         if (interrupt_time - last_interrupt_time > pdMS_TO_TICKS(DEBOUNCE_TIME_MS)) {
             xQueueSendFromISR(gpio_evt_queue, &gpio_num, NULL);
@@ -36,11 +36,11 @@ void configure_gpio_interrupt(void)
 
     // Configure the GPIO pin
     gpio_config_t io_conf = {};
-    io_conf.intr_type = GPIO_INTR_NEGEDGE;  // Interrupt on falling edge only
+    io_conf.intr_type = GPIO_INTR_POSEDGE;  // Interrupt on falling edge only
     io_conf.pin_bit_mask = (1ULL << INTERRUPT_PIN);  // Bit mask of the pin
     io_conf.mode = GPIO_MODE_INPUT;  // Set as input
     io_conf.pull_up_en = GPIO_PULLUP_DISABLE;  // pull-up resistor
-    io_conf.pull_down_en = GPIO_PULLDOWN_DISABLE;  // Disable pull-down resistor
+    io_conf.pull_down_en = GPIO_PULLUP_DISABLE;  // Disable pull-down resistor
     gpio_config(&io_conf);
 
     // Install GPIO ISR service

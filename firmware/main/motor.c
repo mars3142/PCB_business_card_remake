@@ -38,7 +38,7 @@ void motor_init(void){
         return;
     }
 
-    xTaskCreate(motor_task, "motor_task_haptic", 2048, (void *)0, 6, NULL);
+    xTaskCreate(motor_task, "motor_task_haptic", 2048, (void *)0, 1, NULL);
 
 }
 
@@ -86,7 +86,7 @@ void set_motor_speed(int motor_index, int speed_percent, bool direction)
     ledc_update_duty(LEDC_LOW_SPEED_MODE, fwd_channel);
     ledc_update_duty(LEDC_LOW_SPEED_MODE, bwd_channel);
 
-    ESP_LOGI("motor","Motor %d set to speed %d%% (duty %d), direction %s",
+    ESP_LOGD("motor","Motor %d set to speed %d%% (duty %d), direction %s",
            motor_index, speed_percent, duty, direction ? "FORWARD" : "BACKWARD");
 }
 
@@ -145,7 +145,7 @@ void motor_task(void *pvParameters)
     MotorUpdate update;
     while (1) {
         if (xQueueReceive(motor_queue[0], &update, pdMS_TO_TICKS(10)) == pdTRUE) {
-            ESP_LOGI("Motor", "motor index %i speed %i direction %i", update.motor_index, update.speed_percent,
+            ESP_LOGD("Motor", "motor index %i speed %i direction %i", update.motor_index, update.speed_percent,
                      update.direction);
             set_motor_speed(update.motor_index, update.speed_percent, update.direction);
         }

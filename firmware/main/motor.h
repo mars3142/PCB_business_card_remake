@@ -10,7 +10,7 @@
 #define NUM_MOTORS              1
 #define MIN_SPEED_PERCENT       15  // Minimum speed percentage
 #define MAX_DUTY                ((1 << LEDC_TIMER_10_BIT) - 1)  // Max duty cycle for 10-bit resolution
-#define MOTOR_QUEUE_SIZE        10
+#define MOTOR_QUEUE_SIZE        20
 #define SOFT_START_DELAY_MS     30  // Adjust this value to change the softness of the start
 
 // Motor speed update structure

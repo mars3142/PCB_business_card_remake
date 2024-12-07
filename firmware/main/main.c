@@ -50,6 +50,8 @@ static const char *TAG = "main";
 
 struct led_state new_state;
 
+SemaphoreHandle_t haptic_mutex;
+
 uint32_t get_next_color_full_spectrum(void) {
     static uint32_t hue = 0;
     float r, g, b;
@@ -84,21 +86,38 @@ void gpio_interrupt_task(void *pvParameters)
     uint32_t io_num;
     for(;;) {
         if(xQueueReceive(gpio_intr_evt_queue, &io_num, portMAX_DELAY)) {
+            ESP_LOGD(TAG, "GPIO[%lu] interrupt occurred!\n", io_num);
             if (gpio_get_level(io_num) == 1) {
-                ESP_LOGI(TAG, "GPIO[%lu] interrupt occurred (falling edge)!\n", io_num);
 
-                MotorUpdate update_a = {0, 80, 1};
-                xQueueSend(motor_queue[0], &update_a, 0);
+                // this could be wrapped up into its own thing instead of dealing with semaphores
+                if (xSemaphoreTake(haptic_mutex, portMAX_DELAY) == pdTRUE) {
 
-                vTaskDelay(50 / portTICK_PERIOD_MS);  // Delay
+                    MotorUpdate update_a = {0, 100, 1};
+                    xQueueSend(motor_queue[0], &update_a, 0);
 
-                // turn off the motor
-                update_a.speed_percent = 0;
-                xQueueSend(motor_queue[0], &update_a, 0);
+                    vTaskDelay(30 / portTICK_PERIOD_MS);  // Delay
 
+                    // turn off the motor
+                    update_a.speed_percent = 0;
+                    xQueueSend(motor_queue[0], &update_a, 0);
+                    xSemaphoreGive(haptic_mutex);
+                }
             }
         }
     }
+}
+
+
+// count how many digits in a number
+int count_digits(int number) {
+    if (number == 0) return 1;
+    int count = 0;
+    while (number != 0) {
+        number /= 10;
+        count++;
+    }
+
+    return count;
 }
 
 
@@ -107,22 +126,72 @@ void game_logic_loop(void *pvParameters){
 
     TickType_t xLastWakeTime = xTaskGetTickCount();
     const TickType_t xFrequency = pdMS_TO_TICKS(20); // For 50 Hz (1000 ms / 50 = 20 ms)
+    MotorUpdate update_a = {0, 100, 1};
+
+    uint32_t game_delay_reset = 0;
+    uint32_t game_over_haptic = 0;
 
     while(1){
 
+        // a delay that allows us to precisely run at a specified frequency
         vTaskDelayUntil(&xLastWakeTime, xFrequency);
-//        ESP_LOGI(TAG, "game tick!");
 
-        // run the game logic
-        game_run();
+        // if the game is over, reset if user presses the button
+        if(game_get_game_over() == 1){
 
-        // write the display buffer
-        game_compile_buffer(display_buffer);
+            // let the user see what happened for 20 frames
+            if(game_delay_reset > 20){
+                // get the game score
+                int score = (int)game_get_score();
+                if(score > 9999)
+                    score = 9999; // display limit
 
-        // write the display buffer to the new state
+                // write the display buffer to the new state buffer
+                display_clear();
+
+                // determine the center of our string
+                int start_x = (15 - (count_digits(score) * 4 - 1)) / 2;
+
+                // write the score to screen
+                display_number(score, start_x,2);
+            }
+
+            if(game_delay_reset > 0 && game_delay_reset < 30 && game_over_haptic == 0){
+                if (xSemaphoreTake(haptic_mutex, portMAX_DELAY) == pdTRUE) {
+                    update_a.speed_percent = 100;
+                    xQueueSend(motor_queue[0], &update_a, 0);
+                    game_over_haptic = 1;
+                }
+
+            } else if (game_delay_reset > 30 && game_over_haptic == 1){
+                update_a.speed_percent = 0;
+                xQueueSend(motor_queue[0], &update_a, 0);
+                game_over_haptic = 0;
+                xSemaphoreGive(haptic_mutex);
+            }
+
+            if(game_delay_reset > 30){
+
+                // wait for a button press to restart
+                if (gpio_get_level(1) == 1) {
+                    game_reset();
+                    game_delay_reset = 0;
+                }
+            }
+
+            // delay reset counter
+            game_delay_reset++;
+
+        } else{
+            // run the game logic
+            game_run();
+
+            // write the display buffer
+            game_compile_buffer(display_buffer);
+
+        }
+
         display_write_buffer(&new_state);
-
-        // display on the screen
         ws2812_write_leds(new_state);
 
     }
@@ -142,6 +211,8 @@ void app_main(void)
 
     ESP_LOGI(TAG, "starting up");
 
+    haptic_mutex = xSemaphoreCreateMutex();
+
     // init led driver
     ws2812_control_init();
 
@@ -158,7 +229,7 @@ void app_main(void)
     // initilize interrupt and input on IO1
     configure_gpio_interrupt();
     gpio_intr_evt_queue = gpio_interrupt_get_evt_queue();
-    xTaskCreate(gpio_interrupt_task, "gpio_interrupt_task", 2048, NULL, 10, NULL);
+    xTaskCreate(gpio_interrupt_task, "gpio_interrupt_task", 2048, NULL, 2, NULL);
 
     // haptic feedback
     motor_init();
@@ -180,9 +251,7 @@ void app_main(void)
                 NULL, 0, NULL);
 
 
-//    // write the display buffer to the new state buffer
-//    display_write_buffer(&new_state);
-//    ws2812_write_leds(new_state);
+
 //
 //    vTaskDelay(1000 / portTICK_PERIOD_MS);  // Delay
 
@@ -192,11 +261,7 @@ void app_main(void)
 //        for(int i = 0; i < 120; i++)
 //            new_state.leds[i] = get_next_color_full_spectrum();
 
-
-
         vTaskDelay(1000 / portTICK_PERIOD_MS);  // Delay
-
-
 
     }
 }
