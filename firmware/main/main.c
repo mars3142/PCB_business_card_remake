@@ -122,7 +122,7 @@ int count_digits(int number) {
 
 
 // this is the main logic loop
-void game_logic_loop(void *pvParameters){
+void main_loop(void *pvParameters){
 
     TickType_t xLastWakeTime = xTaskGetTickCount();
     const TickType_t xFrequency = pdMS_TO_TICKS(20); // For 50 Hz (1000 ms / 50 = 20 ms)
@@ -247,7 +247,7 @@ void app_main(void)
 
 
     // initialize the task for game logic loop
-    xTaskCreate(game_logic_loop, "game_logic_loop", 4096,
+    xTaskCreate(main_loop, "main_loop", 4096,
                 NULL, 0, NULL);
 
 
