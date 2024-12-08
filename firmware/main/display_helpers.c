@@ -1,5 +1,6 @@
 #include "display_helpers.h"
 #include "esp_log.h"
+#include <math.h>
 
 uint32_t display_buffer[8][15] = {
         {0x200000, 0x200000, 0x200000, 0x200000, 0x200000, 0x200000, 0x200000, 0x200000, 0x200000, 0x200000, 0x200000, 0x0CFF00, 0x0CFF00, 0x200000, 0x200000},
@@ -106,4 +107,35 @@ void display_clear(void){
             display_buffer[i][b] = 0x000000;
         }
     }
+}
+
+// Function to convert HSV to RGB
+// h - hue
+// s - saturation
+// v - brightness
+uint32_t hsv_to_rgb(float h, float s, float v) {
+    float c = v * s;
+    float x = c * (1 - fabsf(fmodf(h * 6, 2) - 1));
+    float m = v - c;
+    float r, g, b;
+
+    if (h < 1.0f/6.0f) {
+        r = c; g = x; b = 0;
+    } else if (h < 2.0f/6.0f) {
+        r = x; g = c; b = 0;
+    } else if (h < 3.0f/6.0f) {
+        r = 0; g = c; b = x;
+    } else if (h < 4.0f/6.0f) {
+        r = 0; g = x; b = c;
+    } else if (h < 5.0f/6.0f) {
+        r = x; g = 0; b = c;
+    } else {
+        r = c; g = 0; b = x;
+    }
+
+    uint8_t r_int = (uint8_t)((r + m) * 255);
+    uint8_t g_int = (uint8_t)((g + m) * 255);
+    uint8_t b_int = (uint8_t)((b + m) * 255);
+
+    return (r_int << 16) | (g_int << 8) | b_int;
 }

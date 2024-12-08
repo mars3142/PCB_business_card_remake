@@ -9,6 +9,8 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 
+#include "display_helpers.h"
+
 // game speed
 uint32_t game_speed = 10;
 
@@ -237,33 +239,7 @@ void game_reset(void) {
     ESP_LOGI("game", "Game reset");
 }
 
-// Function to convert HSV to RGB
-uint32_t hsv_to_rgb(float h, float s, float v) {
-    float c = v * s;
-    float x = c * (1 - fabsf(fmodf(h * 6, 2) - 1));
-    float m = v - c;
-    float r, g, b;
 
-    if (h < 1.0f/6.0f) {
-        r = c; g = x; b = 0;
-    } else if (h < 2.0f/6.0f) {
-        r = x; g = c; b = 0;
-    } else if (h < 3.0f/6.0f) {
-        r = 0; g = c; b = x;
-    } else if (h < 4.0f/6.0f) {
-        r = 0; g = x; b = c;
-    } else if (h < 5.0f/6.0f) {
-        r = x; g = 0; b = c;
-    } else {
-        r = c; g = 0; b = x;
-    }
-
-    uint8_t r_int = (uint8_t)((r + m) * 255);
-    uint8_t g_int = (uint8_t)((g + m) * 255);
-    uint8_t b_int = (uint8_t)((b + m) * 255);
-
-    return (r_int << 16) | (g_int << 8) | b_int;
-}
 
 void game_animate_background() {
     uint32_t new_background[8][15];;
