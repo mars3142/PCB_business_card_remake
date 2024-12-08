@@ -262,11 +262,19 @@ void main_loop(void *pvParameters){
                 // Code to run the Bluetooth control app
                 // read in the buffer from the BT control and display it
 
-                if(button_press_detect(1000) == 1){
+                // write the bt buffer to the main display buffer
+                for(int i = 0; i < 8; i++){
+                    for(int b = 0; b < 15; b++){
+                        display_buffer[i][b] = display_bt_buffer[i][b];
+                    }
+                }
+
+                if(button_press_detect(1000) == 1) {
                     // Transition to the next state
                     current_state = (current_state + 1) % APP_MAX_STATES;
                 }
                 break;
+
             default:
                 // Handle invalid state (should not occur)
                 break;
@@ -300,12 +308,12 @@ void app_main(void)
     ESP_LOGI(TAG, "ws driver initialized");
 
     // BLE Setup -------------------
-//    nimble_port_init();
-//    ble_hs_cfg.sync_cb = sync_cb;
-//    ble_hs_cfg.reset_cb = reset_cb;
-//    gatt_svr_init();
-//    ble_svc_gap_device_name_set(device_name);
-//    nimble_port_freertos_init(host_task);
+    nimble_port_init();
+    ble_hs_cfg.sync_cb = sync_cb;
+    ble_hs_cfg.reset_cb = reset_cb;
+    gatt_svr_init();
+    ble_svc_gap_device_name_set(device_name);
+    nimble_port_freertos_init(host_task);
 
     // initilize interrupt and input on IO1
     configure_gpio_interrupt();

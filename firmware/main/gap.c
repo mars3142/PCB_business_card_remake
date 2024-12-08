@@ -62,21 +62,11 @@ int gap_event_handler(struct ble_gap_event *event, void *arg) {
                event->connect.status == 0 ? "established" : "failed",
                event->connect.status);
 
-      // turn on the front LEDS
-      set_led(3,true);
-      set_led(2,true);
-
       break;
 
     case BLE_GAP_EVENT_DISCONNECT:
       ESP_LOGD(LOG_TAG_GAP, "GAP: Disconnect: reason=%d\n",
                event->disconnect.reason);
-
-      // turn off the front LEDS
-      set_led(3,false);
-      set_led(2,false);
-      set_led(1,true);
-      set_led(0,true);
 
       // Connection terminated; resume advertising
       advertise();
@@ -90,12 +80,6 @@ int gap_event_handler(struct ble_gap_event *event, void *arg) {
     case BLE_GAP_EVENT_SUBSCRIBE:
         ESP_LOGI(LOG_TAG_GAP, "GAP: Subscribe: conn_handle=%d",
                event->connect.conn_handle);
-
-        // turn on the front headlines
-        set_led(0,true);
-        set_led(1,true);
-        set_led(2,true);
-        set_led(3,true);
 
         break;
 

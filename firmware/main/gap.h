@@ -8,7 +8,7 @@
 
 #define LOG_TAG_GAP "gap"
 
-static const char device_name[] = "Racer2";
+static const char device_name[] = "PCBBusinessCard";
 
 void advertise();
 void reset_cb(int reason);

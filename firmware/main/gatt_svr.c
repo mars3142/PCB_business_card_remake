@@ -1,11 +1,10 @@
 #include "gatt_svr.h"
 #include "mbedtls/aes.h"
 #include <string.h>
-#include "old/controller.h"
-
+#include "display_helpers.h"
 
 uint8_t gatt_svr_chr_ota_control_val;
-uint8_t gatt_svr_chr_ota_data_val[128];
+uint32_t gatt_svr_chr_ota_data_val[128];
 
 uint16_t ota_control_val_handle;
 uint16_t ota_data_val_handle;
@@ -14,7 +13,7 @@ uint16_t num_pkgs_received = 0;
 uint16_t packet_size = 0;
 
 static const char *manuf_name = "DreamNight LLC";
-static const char *model_num = "Racer";
+static const char *model_num = "PCBBusinessCard";
 
 static int gatt_svr_chr_write(struct os_mbuf *om, uint16_t min_len,
                               uint16_t max_len, void *dst, uint16_t *len);
@@ -236,15 +235,18 @@ static int gatt_svr_chr_ota_data_cb(uint16_t conn_handle, uint16_t attr_handle,
     rc = gatt_svr_chr_write(ctxt->om, 1, sizeof(gatt_svr_chr_ota_data_val),
                             gatt_svr_chr_ota_data_val, NULL);
 
-    ESP_LOGI(LOG_TAG_GATT_SVR, "Received packet data:%i, %i, %i, %i, %i", gatt_svr_chr_ota_data_val[0],
-             gatt_svr_chr_ota_data_val[1], gatt_svr_chr_ota_data_val[2], gatt_svr_chr_ota_data_val[3],
-             gatt_svr_chr_ota_data_val[4]);
+//    ESP_LOGI(LOG_TAG_GATT_SVR, "Received packet data:%i, %i, %i, %i, %i", gatt_svr_chr_ota_data_val[0],
+//             gatt_svr_chr_ota_data_val[1], gatt_svr_chr_ota_data_val[2], gatt_svr_chr_ota_data_val[3],
+//             gatt_svr_chr_ota_data_val[4]);
 
-    // Example command to set motor speeds and direction for 10 seconds
-    MotorCommand command = {gatt_svr_chr_ota_data_val[0], gatt_svr_chr_ota_data_val[1],
-                            gatt_svr_chr_ota_data_val[2], gatt_svr_chr_ota_data_val[3],
-                            gatt_svr_chr_ota_data_val[4]};
-    set_motor_command(command);
+    // copy over the data
+    int byte_num = 0;
+    for(int i = 0; i < 8; i++){
+        for(int b = 0; b < 15; b++){
+            display_bt_buffer[i][b] = gatt_svr_chr_ota_data_val[byte_num];
+            byte_num++;
+        }
+    }
 
     num_pkgs_received++;
     ESP_LOGI(LOG_TAG_GATT_SVR, "Received packet %d", num_pkgs_received);
