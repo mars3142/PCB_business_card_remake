@@ -8,7 +8,10 @@ extern uint32_t display_bt_buffer[8][15];
 
 void display_write_buffer(struct led_state * new_state);
 void display_number(uint32_t number, int start_x, int start_y);
+void display_write_string(const char *str, int start_x, int start_y);
 void display_clear(void);
+
+void display_draw_bt_logo(void);
 
 uint32_t hsv_to_rgb(float h, float s, float v);
 

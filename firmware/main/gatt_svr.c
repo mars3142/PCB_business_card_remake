@@ -15,6 +15,10 @@ uint16_t packet_size = 0;
 static const char *manuf_name = "DreamNight LLC";
 static const char *model_num = "PCBBusinessCard";
 
+uint16_t gatt_get_num_pkgs_recieved(void){
+    return num_pkgs_received;
+}
+
 static int gatt_svr_chr_write(struct os_mbuf *om, uint16_t min_len,
                               uint16_t max_len, void *dst, uint16_t *len);
 

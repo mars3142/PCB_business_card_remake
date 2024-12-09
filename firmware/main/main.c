@@ -255,18 +255,27 @@ void main_loop(void *pvParameters){
                 if(button_press_detect(1000) == 1){
                     // Transition to the next state
                     current_state = (current_state + 1) % APP_MAX_STATES;
+
                 }
 
                 break;
             case APP_BLUETOOTH_CONTROL:
                 // Code to run the Bluetooth control app
-                // read in the buffer from the BT control and display it
-
                 // write the bt buffer to the main display buffer
-                for(int i = 0; i < 8; i++){
-                    for(int b = 0; b < 15; b++){
-                        display_buffer[i][b] = display_bt_buffer[i][b];
+
+                // check if there is an active connection
+                // if there is an active connection, write the buffer
+                // else write the bt logo
+                if(gatt_get_num_pkgs_recieved() > 0) {
+                    for (int i = 0; i < 8; i++) {
+                        for (int b = 0; b < 15; b++) {
+                            display_buffer[i][b] = display_bt_buffer[i][b];
+                        }
                     }
+                } else {
+                    display_draw_bt_logo();
+                    // Write a string to the display
+//                    display_write_string("BLE", 0, 0);
                 }
 
                 if(button_press_detect(1000) == 1) {

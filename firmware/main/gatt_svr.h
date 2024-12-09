@@ -44,3 +44,5 @@ static const ble_uuid128_t gatt_svr_chr_ota_data_uuid =
 
 
 void gatt_svr_init();
+
+uint16_t gatt_get_num_pkgs_recieved(void);
