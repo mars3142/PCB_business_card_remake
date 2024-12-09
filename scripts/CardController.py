@@ -16,7 +16,7 @@ debug_printed = False
 
 # stringify the temperature
 def temp_to_string(temp):
-    return f"T:{temp:.1f}"  # Rounds to one decimal place
+    return f"T:{temp:.1f} C"  # Rounds to one decimal place
 
 async def get_weather_temperature():
     """Fetches the current temperature from OpenWeatherMap."""
@@ -197,11 +197,13 @@ class TemperatureDisplay:
     def __init__(self):
         self.temp_string = ""
         self.scroll_index = 0
+        self.quit_event = asyncio.Event()
 
     async def display_temperature_task(self, client):
-        while True:
+        while not self.quit_event.is_set():
             if keyboard.is_pressed('q'):
-
+                print("Shutting down safely, please wait")
+                self.quit_event.set()
                 break
 
             # Generate screen data based on the current temperature
@@ -219,7 +221,7 @@ class TemperatureDisplay:
             await asyncio.sleep(0.3)  # Scroll every 0.3 seconds
 
     async def update_temperature(self, client, update_interval):
-        while True:
+        while not self.quit_event.is_set():
             # Get the current temperature
             temperature = await get_weather_temperature()
             if temperature is not None:
@@ -247,6 +249,8 @@ async def main():
 
     except Exception as e:
         print(f"An error occurred: {e}")
+
+    print("Bye!")
 
 if __name__ == "__main__":
     asyncio.run(main())
