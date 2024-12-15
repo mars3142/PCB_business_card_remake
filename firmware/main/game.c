@@ -10,6 +10,7 @@
 #include "freertos/task.h"
 
 #include "display_helpers.h"
+#include "gpio_interrupt.h"
 
 // game speed
 uint32_t game_speed = 10;
@@ -161,7 +162,7 @@ void game_animate_player(void) {
     uint32_t button_pressed = 0;
 
     // Check for button press (rising edge detection)
-    if (gpio_get_level(1) == 1) {
+    if (gpio_get_level(INTERRUPT_PIN) == 1) {
         if (game_last_button_state == 0) {
             game_last_button_state = 1;
             button_pressed = 1;

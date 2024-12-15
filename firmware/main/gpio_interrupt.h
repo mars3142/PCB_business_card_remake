@@ -6,7 +6,7 @@
 #include "freertos/queue.h"
 
 // Define the interrupt pin
-#define INTERRUPT_PIN 1
+#define INTERRUPT_PIN 8
 
 // Function prototypes
 QueueHandle_t gpio_interrupt_get_evt_queue(void);

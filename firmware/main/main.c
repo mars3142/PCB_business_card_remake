@@ -14,7 +14,7 @@
 #include "esp_log.h"
 #include "driver/ledc.h"
 #include "driver/gpio.h"
-#include "motor.h"
+#include "esp_sleep.h"
 
 // BLE
 #include "gap.h"
@@ -57,6 +57,7 @@ enum app_states {
     APP_SPLASH_SCREEN,
     APP_GAME,
     APP_BLUETOOTH_CONTROL,
+    APP_OFF,
     APP_MAX_STATES // This is to keep track of the number of states
 };
 
@@ -164,7 +165,7 @@ void game_loop(void){
         if(game_delay_reset > 30){
 
             // wait for a button press to restart
-            if (gpio_get_level(1) == 1) {
+            if (gpio_get_level(INTERRUPT_PIN) == 1) {
                 game_reset();
                 game_delay_reset = 0;
             }
@@ -186,7 +187,7 @@ void game_loop(void){
 uint8_t short_press_detect(void){
     uint8_t short_press = 0;
 
-    if(gpio_get_level(1) == 1){
+    if(gpio_get_level(INTERRUPT_PIN) == 1){
         short_press = 1;
     }
 
@@ -196,7 +197,7 @@ uint8_t short_press_detect(void){
 
 uint8_t button_press_detect(uint32_t press_duration) {
     // Read the current state of the button
-    bool current_button_state = gpio_get_level(1);
+    bool current_button_state = gpio_get_level(INTERRUPT_PIN);
 
     uint8_t press = 0;
 
@@ -282,6 +283,21 @@ void main_loop(void *pvParameters){
                     // Transition to the next state
                     current_state = (current_state + 1) % APP_MAX_STATES;
                 }
+                break;
+            case APP_OFF:
+
+                // clear the screen and set low power mode on the esp32
+                // Enable wakeup on GPIO 1 (high level)
+                esp_sleep_enable_ext1_wakeup(1ULL << INTERRUPT_PIN, ESP_EXT1_WAKEUP_ANY_HIGH);
+
+                display_clear();
+                display_write_buffer(&new_state);
+                ws2812_write_leds(new_state);
+
+                vTaskDelay(pdMS_TO_TICKS(1000));
+
+                // Enter deep sleep
+                esp_deep_sleep_start();
                 break;
 
             default:
