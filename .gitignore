@@ -6,3 +6,5 @@ sdkconfig.old
 sdkconfig
 venv/
 .DS_Store
+scripts/__pycache__
+scripts/ble_device_config.json
