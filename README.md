@@ -24,6 +24,7 @@ Code for the business card. This lives on the ESP32
 #### Requirements
 - ESP32 IDF version 5.4
 - Target set to ESP32-H2
+- BLE configured to NIMBLE
 
 ### 2. Hardware
 
