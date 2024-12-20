@@ -1,0 +1,34 @@
+name: Build the ESP-IDF Project
+
+on:
+  pull_request:
+    paths:
+      - firmware/**
+  merge_group:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          submodules: "recursive"
+
+      - name: ESP-IDF build
+        uses: espressif/esp-idf-ci-action@v1
+        with:
+          esp_idf_version: release-v5.4
+          target: esp32h2
+          path: firmware
+
+      - name: Store artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: firmware
+          path: firmware/build/**/*.bin
